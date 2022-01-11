@@ -18,8 +18,38 @@ from dagster.core.snap import (
 from dagster.daemon.types import DaemonHeartbeat
 from dagster.utils import frozendict, merge_dicts
 
-from ..pipeline_run import PipelineRun, PipelineRunsFilter, RunRecord
+from ..pipeline_run import JobBucket, PipelineRun, PipelineRunsFilter, RunRecord, TagBucket
 from .base import RunStorage
+
+
+def build_run_filter(filters: Optional[PipelineRunsFilter]) -> Callable[[PipelineRun], bool]:
+    def _filter(run: PipelineRun) -> bool:
+        if not filters:
+            return True
+
+        if filters.run_ids and run.run_id not in filters.run_ids:
+            return False
+
+        if filters.statuses and run.status not in filters.statuses:
+            return False
+
+        if filters.pipeline_name and filters.pipeline_name != run.pipeline_name:
+            return False
+
+        if filters.mode and filters.mode != run.mode:
+            return False
+
+        if filters.tags and not all(
+            run.tags.get(key) == value for key, value in filters.tags.items()
+        ):
+            return False
+
+        if filters.snapshot_id and filters.snapshot_id != run.pipeline_snapshot_id:
+            return False
+
+        return True
+
+    return _filter
 
 
 class InMemoryRunStorage(RunStorage):
@@ -82,40 +112,34 @@ class InMemoryRunStorage(RunStorage):
             )
 
     def get_runs(
-        self, filters: PipelineRunsFilter = None, cursor: str = None, limit: int = None
+        self,
+        filters: PipelineRunsFilter = None,
+        cursor: str = None,
+        limit: int = None,
+        bucket: Optional[Union[JobBucket, TagBucket]] = None,
     ) -> List[PipelineRun]:
         check.opt_inst_param(filters, "filters", PipelineRunsFilter)
         check.opt_str_param(cursor, "cursor")
         check.opt_int_param(limit, "limit")
+        check.opt_inst_param(bucket, "bucket", (JobBucket, TagBucket))
 
-        if not filters:
-            return self._slice(list(self._runs.values())[::-1], cursor, limit)
+        matching_runs = list(filter(build_run_filter(filters), list(self._runs.values())[::-1]))
+        if not bucket:
+            return self._slice(matching_runs, cursor=cursor, limit=limit)
 
-        def run_filter(run):
-            if filters.run_ids and run.run_id not in filters.run_ids:
-                return False
-
-            if filters.statuses and run.status not in filters.statuses:
-                return False
-
-            if filters.pipeline_name and filters.pipeline_name != run.pipeline_name:
-                return False
-
-            if filters.mode and filters.mode != run.mode:
-                return False
-
-            if filters.tags and not all(
-                run.tags.get(key) == value for key, value in filters.tags.items()
+        results = []
+        bucket_counts: Dict[str, int] = defaultdict(int)
+        for run in matching_runs:
+            bucket_key = (
+                run.pipeline_name if isinstance(bucket, JobBucket) else run.tags.get(bucket.tag_key)
+            )
+            if not bucket_key or (
+                bucket.bucket_limit and bucket_counts[bucket_key] >= bucket.bucket_limit
             ):
-                return False
-
-            if filters.snapshot_id and filters.snapshot_id != run.pipeline_snapshot_id:
-                return False
-
-            return True
-
-        matching_runs = list(filter(run_filter, list(self._runs.values())[::-1]))
-        return self._slice(matching_runs, cursor=cursor, limit=limit)
+                continue
+            bucket_counts[bucket_key] += 1
+            results.append(run)
+        return results
 
     def get_runs_count(self, filters: PipelineRunsFilter = None) -> int:
         check.opt_inst_param(filters, "filters", PipelineRunsFilter)
@@ -126,7 +150,7 @@ class InMemoryRunStorage(RunStorage):
         self,
         items: List,
         cursor: Optional[str],
-        limit: Optional[int],
+        limit: Optional[int] = None,
         key_fn: Callable = lambda _: _.run_id,
     ):
         if cursor:
@@ -157,6 +181,7 @@ class InMemoryRunStorage(RunStorage):
         order_by: str = None,
         ascending: bool = False,
         cursor: str = None,
+        bucket: Optional[Union[JobBucket, TagBucket]] = None,
     ) -> List[RunRecord]:
         raise NotImplementedError("In memory run storage does not track timestamp yet.")
 
