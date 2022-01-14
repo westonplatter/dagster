@@ -8,9 +8,10 @@ from dagster import check
 from dagster.builtins import BuiltinEnum
 from dagster.config.config_type import Array, ConfigType
 from dagster.config.config_type import Noneable as ConfigNoneable
-from dagster.core.definitions.event_metadata import EventMetadataEntry
+
 from dagster.core.definitions.events import TypeCheck
 from dagster.core.errors import DagsterInvalidDefinitionError, DagsterInvariantViolationError
+from dagster.core.definitions.event_metadata import EventMetadataEntry
 from dagster.serdes import whitelist_for_serdes
 
 from .builtin_config_schemas import BuiltinSchemas
@@ -140,8 +141,8 @@ class DagsterType:
         self.typing_type = typing_type
 
         self._metadata_entries = cast(
-            t.List[MetadataEntry],
-            check.opt_list_param(metadata_entries, "metadata_entries", of_type=MetadataEntry),
+            t.List[EventMetadataEntry],
+            check.opt_list_param(metadata_entries, "metadata_entries", of_type=EventMetadataEntry),
         )
 
     def type_check(self, context: "TypeCheckContext", value: object) -> TypeCheck:
