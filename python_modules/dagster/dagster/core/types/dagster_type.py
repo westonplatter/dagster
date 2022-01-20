@@ -149,9 +149,6 @@ class DagsterType:
             metadata_entries, "metadata_entries", of_type=EventMetadataEntry
         )
         metadata = check.opt_dict_param(metadata, "metadata", key_type=str)
-        # self._metadata_entries=cast(
-        #     t.List[EventMetadataEntry], parse_metadata(metadata, metadata_entries)
-        # ),
         self._metadata_entries = parse_metadata(metadata, metadata_entries)
 
     def type_check(self, context: "TypeCheckContext", value: object) -> TypeCheck:
