@@ -13,7 +13,7 @@ from dagster import (
     pipeline,
     solid,
 )
-from dagster.core.definitions.event_metadata import DagsterInvalidEventMetadata
+from dagster.core.definitions.event_metadata import DagsterInvalidEventMetadata, EventMetadataEntry
 
 
 def solid_events_for_type(result, solid_name, event_type):
@@ -121,6 +121,30 @@ def test_unknown_metadata_value():
         "Its type was <class 'dagster.core.instance.DagsterInstance'>. "
         "Consider wrapping the value with the appropriate EventMetadata type."
     )
+
+
+def test_bad_table_schema_metadata_value():
+
+    with pytest.raises(DagsterInvalidEventMetadata):
+        EventMetadata.table_schema(
+            {
+                "frields": [{"name": "foo"}],
+            }
+        )
+
+    with pytest.raises(DagsterInvalidEventMetadata):
+        EventMetadata.table_schema(
+            {
+                "fields": [{"noname": "foo"}],
+            }
+        )
+
+    with pytest.raises(DagsterInvalidEventMetadata):
+        EventMetadata.table_schema(
+            {
+                "fields": ["foo", {"name": "foo"}],
+            }
+        )
 
 
 def test_bad_json_metadata_value():
