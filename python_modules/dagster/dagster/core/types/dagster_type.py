@@ -93,6 +93,7 @@ class DagsterType:
         required_resource_keys: t.Set[str] = None,
         kind: DagsterTypeKind = DagsterTypeKind.REGULAR,
         typing_type: t.Any = None,
+        metadata_entries: t.Optional[t.List[EventMetadataEntry]] = None,
     ):
         check.opt_str_param(key, "key")
         check.opt_str_param(name, "name")
@@ -138,6 +139,11 @@ class DagsterType:
 
         self.typing_type = typing_type
 
+        self._metadata_entries = cast(
+            t.List[MetadataEntry],
+            check.opt_list_param(metadata_entries, "metadata_entries", of_type=MetadataEntry),
+        )
+
     def type_check(self, context: "TypeCheckContext", value: object) -> TypeCheck:
         retval = self._type_check_fn(context, value)
 
@@ -165,7 +171,7 @@ class DagsterType:
 
     @property
     def metadata_entries(self) -> t.List[EventMetadataEntry]:
-        return []
+        return self._metadata_entries
 
     @property
     def display_name(self) -> str:
