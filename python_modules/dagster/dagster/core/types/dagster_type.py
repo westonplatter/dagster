@@ -15,7 +15,6 @@ from dagster.core.definitions.event_metadata import (
 )
 from dagster.core.definitions.events import TypeCheck
 from dagster.core.errors import DagsterInvalidDefinitionError, DagsterInvariantViolationError
-from dagster.core.definitions.event_metadata import EventMetadataEntry
 from dagster.serdes import whitelist_for_serdes
 
 from .builtin_config_schemas import BuiltinSchemas

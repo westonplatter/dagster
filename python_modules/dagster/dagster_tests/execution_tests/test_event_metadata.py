@@ -13,7 +13,14 @@ from dagster import (
     pipeline,
     solid,
 )
+from dagster.check import CheckError
 from dagster.core.definitions.event_metadata import DagsterInvalidEventMetadata, EventMetadataEntry
+from dagster.core.definitions.event_metadata.table_schema import (
+    TableConstraints,
+    TableField,
+    TableFieldConstraints,
+    TableSchema,
+)
 
 
 def solid_events_for_type(result, solid_name, event_type):
@@ -123,30 +130,6 @@ def test_unknown_metadata_value():
     )
 
 
-def test_bad_table_schema_metadata_value():
-
-    with pytest.raises(DagsterInvalidEventMetadata):
-        EventMetadata.table_schema(
-            {
-                "frields": [{"name": "foo"}],
-            }
-        )
-
-    with pytest.raises(DagsterInvalidEventMetadata):
-        EventMetadata.table_schema(
-            {
-                "fields": [{"noname": "foo"}],
-            }
-        )
-
-    with pytest.raises(DagsterInvalidEventMetadata):
-        EventMetadata.table_schema(
-            {
-                "fields": ["foo", {"name": "foo"}],
-            }
-        )
-
-
 def test_bad_json_metadata_value():
     @solid(output_defs=[])
     def the_solid(context):
@@ -165,4 +148,147 @@ def test_bad_json_metadata_value():
     assert str(exc_info.value) == (
         'Could not resolve the metadata value for "bad" to a JSON serializable value. '
         "Consider wrapping the value with the appropriate EventMetadata type."
+    )
+
+
+def test_table_metadata_value_schema_inference():
+
+    table_metadata_value = EventMetadataEntry.table(
+        records=[
+            {"name": "foo", "status": False},
+            {"name": "bar", "status": True},
+        ],
+        label="foo",
+    )
+
+    schema = table_metadata_value.entry_data.schema
+    assert isinstance(schema, TableSchema)
+    assert schema.fields == [
+        TableField(name="name", type="string"),
+        TableField(name="status", type="bool"),
+    ]
+
+
+bad_values = {
+    "table_schema": {"fields": False, "constraints": False},
+    "table_field": {"name": False, "type": False, "description": False, "constraints": False},
+    "table_constraints": {"other": False},
+    "table_field_constraints": {
+        "required": "foo",
+        "unique": "foo",
+        "min_length": "foo",
+        "max_length": "foo",
+        # "minimum": None,  # not checked because the type depends on field type
+        # "maximum": None,
+        "pattern": False,
+        "enum": False,
+        "other": False,
+    },
+}
+
+
+def test_table_field_keys():
+    with pytest.raises(TypeError):
+        TableField(bad_key="foo", description="bar", type="string")
+
+
+@pytest.mark.parametrize("key,value", list(bad_values["table_field"].items()))
+def test_table_field_values(key, value):
+    kwargs = {
+        "name": "foo",
+        "type": "string",
+        "description": "bar",
+        "constraints": TableFieldConstraints(other=["foo"]),
+    }
+    kwargs[key] = value
+    with pytest.raises(CheckError):
+        TableField(**kwargs)
+
+
+def test_table_constraints_keys():
+    with pytest.raises(TypeError):
+        TableField(bad_key="foo")
+
+
+@pytest.mark.parametrize("key,value", list(bad_values["table_constraints"].items()))
+def test_table_constraints(key, value):
+    kwargs = {"other": ["foo"]}
+    kwargs[key] = value
+    with pytest.raises(CheckError):
+        TableConstraints(**kwargs)
+
+
+def test_table_field_constraints_keys():
+    with pytest.raises(TypeError):
+        TableFieldConstraints(bad_key="foo")
+
+
+# minimum and maximum aren't checked because they depend on the type of the field
+@pytest.mark.parametrize("key,value", list(bad_values["table_field_constraints"].items()))
+def test_table_field_constraints_values(key, value):
+    kwargs = {
+        "required": True,
+        "unique": True,
+        "min_length": 2,
+        "max_length": 10,
+        "minimum": "a",
+        "maximum": "z",
+        "pattern": r"\w+",
+        "enum": None,
+        "other": ["foo"],
+    }
+    kwargs[key] = value
+    with pytest.raises(CheckError):
+        TableFieldConstraints(**kwargs)
+
+
+def test_table_schema_keys():
+    with pytest.raises(TypeError):
+        TableSchema(bad_key="foo")
+
+
+@pytest.mark.parametrize("key,value", list(bad_values["table_schema"].items()))
+def test_table_schema_values(key, value):
+    kwargs = {
+        "constraints": TableConstraints(other=["foo"]),
+        "fields": [
+            TableField(
+                name="foo",
+                type="string",
+                description="bar",
+                constraints=TableFieldConstraints(other=["foo"]),
+            )
+        ],
+    }
+    kwargs[key] = value
+    with pytest.raises(CheckError):
+        TableSchema(**kwargs)
+
+
+def test_complex_table_schema():
+    assert isinstance(
+        TableSchema(
+            fields=[
+                TableField(
+                    name="foo",
+                    type="customtype",
+                    constraints=TableFieldConstraints(
+                        required=True,
+                        unique=True,
+                        minimum=object(),
+                    ),
+                ),
+                TableField(
+                    name="bar",
+                    type="string",
+                    description="bar",
+                    constraints=TableFieldConstraints(
+                        min_length=10,
+                        other=["foo"],
+                    ),
+                ),
+            ],
+            constraints=TableConstraints(other=["foo"]),
+        ),
+        TableSchema,
     )
