@@ -18,7 +18,7 @@ from dagster.core.errors import DagsterInvalidEventMetadata
 from dagster.serdes import whitelist_for_serdes
 from dagster.utils.backcompat import experimental_class_warning
 
-from .table_schema import TableConstraints, TableField, TableFieldConstraints, TableSchema
+from .table import TableConstraints, TableField, TableFieldConstraints, TableRecord, TableSchema
 
 if TYPE_CHECKING:
     from dagster.core.definitions.events import AssetKey
@@ -328,7 +328,7 @@ class TableMetadataEntryData(
     NamedTuple(
         "_TableMetadataEntryData",
         [
-            ("records", List[Dict[str, object]]),
+            ("records", List[TableRecord]),
             ("schema", TableSchema),
         ],
     )
@@ -336,8 +336,7 @@ class TableMetadataEntryData(
     """Container class for table metadata entry data.
 
     Args:
-        records (List[Dict[str, object]]): The data as a list of records (i.e. rows). Each record is a
-            dictionary mapping field names to values.
+        records (TableRecord): The data as a list of records (i.e. rows).
         schema (Optional[TableSchema]): A schema for the table.
     """
 
@@ -352,10 +351,10 @@ class TableMetadataEntryData(
         else:
             return "string"
 
-    def __new__(cls, records: List[Dict[str, object]], schema: TableSchema):
+    def __new__(cls, records: List[TableRecord], schema: TableSchema):
         return super(TableMetadataEntryData, cls).__new__(
             cls,
-            check.list_param(records, "records", of_type=dict),
+            check.list_param(records, "records", of_type=TableRecord),
             check.inst_param(schema, "schema", TableSchema),
         )
 
@@ -630,7 +629,7 @@ class EventMetadata:
         return DagsterAssetMetadataEntryData(asset_key)
 
     @staticmethod
-    def table(records: List[Dict[str, object]], schema: TableSchema) -> "TableMetadataEntryData":
+    def table(records: List[TableRecord], schema: TableSchema) -> "TableMetadataEntryData":
         """Static constructor for a metadata value wrapping arbitrary tabular data as
         :py:class:`TableMetadataEntryData`. Can be used as the value type for the `metadata`
         parameter for supported events. For example:
@@ -644,7 +643,9 @@ class EventMetadata:
                     label="is_valid",
                     metadata={
                         "errors": EventMetadata.table(
-                            records=[{"code": "invalid-data-type", "row": 2, "col": "name"}]
+                            records=[
+                                TableRecord(code="invalid-data-type", row=2, col="name"}]
+                            ],
                             schema=TableSchema(
                                 fields=[
                                     TableField(name="code", type="string"),
@@ -657,8 +658,7 @@ class EventMetadata:
                 )
 
         Args:
-            records (List[Dict[str, object]]): The data as a list of records (i.e. rows). Each record is a
-                dictionary mapping field names to values.
+            records (List[TableRecord]): The data as a list of records (i.e. rows).
             schema (TableSchema): A schema for the table.
         """
         return TableMetadataEntryData(records, schema)
@@ -990,7 +990,7 @@ class EventMetadataEntry(
 
     @staticmethod
     def table(
-        records: List[Dict[str, object]],
+        records: List[TableRecord],
         label: str,
         description: Optional[str] = None,
         schema: Optional[TableSchema] = None,
@@ -1008,7 +1008,9 @@ class EventMetadataEntry(
                     metadata_entries=[
                         EventMetadataEntry.table(
                             label="errors",
-                            records=[{"code": "invalid-data-type", "row": 2, "col": "name"}]
+                            records=[
+                                TableRecord(code="invalid-data-type", row=2, col="name"}]
+                            ],
                             schema=TableSchema(
                                 fields=[
                                     TableField(name="code", type="string"),
@@ -1021,8 +1023,7 @@ class EventMetadataEntry(
                 )
 
         Args:
-            records (List[Dict[str, object]]): The data as a list of records (i.e. rows). Each record is a
-                dictionary mapping field names to values.
+            records (List[TableRecord]): The data as a list of records (i.e. rows).
             label (str): Short display label for this metadata entry.
             description (Optional[str]): A human-readable description of this metadata entry.
             schema (Optional[TableSchema]): A schema for the table. If none is provided, one will be
@@ -1031,12 +1032,19 @@ class EventMetadataEntry(
                 `"float"` inferred from the first record's values. If a value does not directly match
                 one of the above types, it will be treated as a string.
         """
-        schema = schema or TableSchema(
-            fields=[
-                TableField(name=k, type=TableMetadataEntryData.infer_field_type(v))
-                for k, v in records[0].items()
-            ]
-        )
+        if len(records) == 0:
+            schema = check.not_none(schema, "schema must be provided if records is empty")
+        else:
+            fields = set(records[0].dict.keys())
+            for record in records[1:]:
+                check.invariant(set(record.dict.keys()) == fields,
+                                                "All records must have the same fields")
+            schema = schema or TableSchema(
+                fields=[
+                    TableField(name=k, type=TableMetadataEntryData.infer_field_type(v))
+                    for k, v in records[0].dict.items()
+                ]
+            )
         return EventMetadataEntry(label, description, TableMetadataEntryData(records, schema))
 
     @staticmethod

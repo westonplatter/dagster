@@ -43,6 +43,7 @@ from .event_metadata import (
     TableField,
     TableFieldConstraints,
     TableMetadataEntryData,
+    TableRecord,
     TableSchema,
     TableSchemaMetadataEntryData,
     TextMetadataEntryData,

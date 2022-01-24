@@ -4,6 +4,20 @@ import dagster.check as check
 from dagster.serdes.serdes import DefaultNamedTupleSerializer, whitelist_for_serdes
 
 # ########################
+# ##### TABLE RECORD
+# ########################
+
+class TableRecord:
+    """Represents one record in a table. All passed keyword arguments are treated as field key/value
+    pairs in the record. Field keys are arbitrary strings-- field values must be strings, integers,
+    floats, or bools.
+    """
+    def __init__(self, **kwargs):
+        check.is_dict(kwargs, value_type=(str, float, int, bool), 
+            desc='Table fields must be one of types: (str, float, int, bool)')
+        self.dict = kwargs
+
+# ########################
 # ##### TABLE SCHEMA
 # ########################
 

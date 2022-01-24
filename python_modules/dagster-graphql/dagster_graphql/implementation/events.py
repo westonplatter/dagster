@@ -19,11 +19,7 @@ from dagster.core.definitions.event_metadata import (
 from dagster.core.events import DagsterEventType
 from dagster.core.events.log import EventLogEntry
 from dagster.core.execution.plan.objects import StepFailureData
-from dagster_graphql.schema.logs.events import (
-    GrapheneEventTableMetadataEntry,
-    GrapheneEventTableSchemaMetadataEntry,
-)
-from dagster_graphql.schema.table import GrapheneTableSchema
+from dagster_graphql.schema.table import GrapheneTable, GrapheneTableSchema
 
 MAX_INT = 2147483647
 MIN_INT = -2147483648
@@ -128,7 +124,7 @@ def iterate_metadata_entries(metadata_entries):
                 table=GrapheneTable(
                     schema=metadata_entry.entry_data.schema,
                     records=[
-                        seven.json.dumps(record) for record in metadata_entry.entry_data.records
+                        seven.json.dumps(record.dict) for record in metadata_entry.entry_data.records
                     ],
                 ),
             )
