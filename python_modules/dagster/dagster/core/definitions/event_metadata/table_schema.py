@@ -200,10 +200,11 @@ class TableField(
 # ########################
 
 
-class _TableFieldConstraints(DefaultNamedTupleSerializer):
+class _TableFieldConstraintsSerializer(DefaultNamedTupleSerializer):
     pass
 
 
+@whitelist_for_serdes(serializer=_TableFieldConstraintsSerializer)
 class TableFieldConstraints(
     NamedTuple(
         "TableFieldConstraints",
