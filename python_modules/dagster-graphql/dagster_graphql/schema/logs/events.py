@@ -8,6 +8,7 @@ from ...implementation.fetch_runs import get_step_stats
 from ..asset_key import GrapheneAssetKey, GrapheneAssetLineageInfo
 from ..errors import GraphenePythonError
 from ..runs import GrapheneStepEventStatus
+from ..table import GrapheneTable, GrapheneTableSchema
 from ..util import non_null_list
 from .log_level import GrapheneLogLevel
 
@@ -159,17 +160,6 @@ class GrapheneExecutionStepSkippedEvent(graphene.ObjectType):
         name = "ExecutionStepSkippedEvent"
 
 
-class GrapheneEventTableSchemaMetadataEntry(graphene.ObjectType):
-    # NOTE: JSON is the serialization format for the table (list of
-    # dictionaries). Don't confuse with `EventJsonMetadataEntry`-- this type is
-    # used only for JSON with a root dictionary.
-    jsonString = graphene.NonNull(graphene.String)
-
-    class Meta:
-        interfaces = (GrapheneEventMetadataEntry,)
-        name = "EventTableSchemaMetadataEntry"
-
-
 class GrapheneEventPathMetadataEntry(graphene.ObjectType):
     path = graphene.NonNull(graphene.String)
 
@@ -182,11 +172,20 @@ class GrapheneEventTableMetadataEntry(graphene.ObjectType):
     # NOTE: JSON is the serialization format for the table (list of
     # dictionaries). Don't confuse with `EventJsonMetadataEntry`-- this type is
     # used only for JSON with a root dictionary.
-    jsonString = graphene.NonNull(graphene.String)
+    table = graphene.NonNull(GrapheneTable)
 
     class Meta:
         interfaces = (GrapheneEventMetadataEntry,)
         name = "EventTableMetadataEntry"
+
+
+class GrapheneEventTableSchemaMetadataEntry(graphene.ObjectType):
+
+    schema = graphene.NonNull(GrapheneTableSchema)
+
+    class Meta:
+        interfaces = (GrapheneEventMetadataEntry,)
+        name = "EventTableSchemaMetadataEntry"
 
 
 class GrapheneEventJsonMetadataEntry(graphene.ObjectType):

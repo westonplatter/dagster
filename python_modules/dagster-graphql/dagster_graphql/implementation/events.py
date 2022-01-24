@@ -23,6 +23,7 @@ from dagster_graphql.schema.logs.events import (
     GrapheneEventTableMetadataEntry,
     GrapheneEventTableSchemaMetadataEntry,
 )
+from dagster_graphql.schema.table import GrapheneTableSchema
 
 MAX_INT = 2147483647
 MIN_INT = -2147483648
@@ -40,8 +41,8 @@ def iterate_metadata_entries(metadata_entries):
         GrapheneEventUrlMetadataEntry,
         GrapheneEventPipelineRunMetadataEntry,
         GrapheneEventAssetMetadataEntry,
-        GrapheneEventTableSchemaMetadataEntry,
         GrapheneEventTableMetadataEntry,
+        GrapheneEventTableSchemaMetadataEntry,
     )
 
     check.list_param(metadata_entries, "metadata_entries", of_type=EventMetadataEntry)
@@ -51,12 +52,6 @@ def iterate_metadata_entries(metadata_entries):
                 label=metadata_entry.label,
                 description=metadata_entry.description,
                 path=metadata_entry.entry_data.path,
-            )
-        elif isinstance(metadata_entry.entry_data, TableMetadataEntryData):
-            yield GrapheneEventTableMetadataEntry(
-                label=metadata_entry.label,
-                description=metadata_entry.description,
-                jsonString=seven.json.dumps(metadata_entry.entry_data.data),
             )
         elif isinstance(metadata_entry.entry_data, JsonMetadataEntryData):
             yield GrapheneEventJsonMetadataEntry(
@@ -126,11 +121,25 @@ def iterate_metadata_entries(metadata_entries):
                 description=metadata_entry.description,
                 assetKey=metadata_entry.entry_data.asset_key,
             )
+        elif isinstance(metadata_entry.entry_data, TableMetadataEntryData):
+            yield GrapheneEventTableMetadataEntry(
+                label=metadata_entry.label,
+                description=metadata_entry.description,
+                table=GrapheneTable(
+                    schema=metadata_entry.entry_data.schema,
+                    records=[
+                        seven.json.dumps(record) for record in metadata_entry.entry_data.records
+                    ],
+                ),
+            )
         elif isinstance(metadata_entry.entry_data, TableSchemaMetadataEntryData):
             yield GrapheneEventTableSchemaMetadataEntry(
                 label=metadata_entry.label,
                 description=metadata_entry.description,
-                jsonString=seven.json.dumps(metadata_entry.entry_data.schema),
+                schema=GrapheneTableSchema(
+                    constraints=metadata_entry.entry_data.schema.constraints,
+                    fields=metadata_entry.entry_data.schema.fields,
+                ),
             )
         else:
             # skip rest for now
