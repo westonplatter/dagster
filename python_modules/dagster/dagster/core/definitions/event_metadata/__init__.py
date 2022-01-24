@@ -1037,8 +1037,9 @@ class EventMetadataEntry(
         else:
             fields = set(records[0].dict.keys())
             for record in records[1:]:
-                check.invariant(set(record.dict.keys()) == fields,
-                                                "All records must have the same fields")
+                check.invariant(
+                    set(record.dict.keys()) == fields, "All records must have the same fields"
+                )
             schema = schema or TableSchema(
                 fields=[
                     TableField(name=k, type=TableMetadataEntryData.infer_field_type(v))

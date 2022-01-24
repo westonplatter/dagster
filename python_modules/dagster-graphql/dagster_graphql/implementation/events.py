@@ -124,7 +124,8 @@ def iterate_metadata_entries(metadata_entries):
                 table=GrapheneTable(
                     schema=metadata_entry.entry_data.schema,
                     records=[
-                        seven.json.dumps(record.dict) for record in metadata_entry.entry_data.records
+                        seven.json.dumps(record.dict)
+                        for record in metadata_entry.entry_data.records
                     ],
                 ),
             )
