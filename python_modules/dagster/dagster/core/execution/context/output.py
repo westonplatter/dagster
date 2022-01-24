@@ -266,7 +266,7 @@ class OutputContext:
         if self._step_context is not None:
             return self._step_context.has_asset_partitions_for_output(self.name)
         else:
-            return None
+            return False
 
     @property
     def asset_partition_key(self) -> str:
