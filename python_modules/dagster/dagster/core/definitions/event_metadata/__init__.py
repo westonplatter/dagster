@@ -4,6 +4,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     List,
     NamedTuple,
     Optional,
@@ -706,9 +707,10 @@ class EventMetadataEntry(
         [
             ("label", str),
             ("description", Optional[str]),
-            ("entry_data", "EventMetadataEntryData"),
+            ("entry_data", T),
         ],
-    )
+    ),
+    Generic[T],
 ):
     """The standard structure for describing metadata for Dagster events.
 
@@ -737,7 +739,7 @@ class EventMetadataEntry(
     @staticmethod
     def text(
         text: Optional[str], label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[TextMetadataEntryData]":
         """Static constructor for a metadata entry containing text as
         :py:class:`TextMetadataEntryData`. For example:
 
@@ -762,7 +764,7 @@ class EventMetadataEntry(
     @staticmethod
     def url(
         url: Optional[str], label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[UrlMetadataEntryData]":
         """Static constructor for a metadata entry containing a URL as
         :py:class:`UrlMetadataEntryData`. For example:
 
@@ -789,7 +791,7 @@ class EventMetadataEntry(
     @staticmethod
     def path(
         path: Optional[str], label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[PathMetadataEntryData]":
         """Static constructor for a metadata entry containing a path as
         :py:class:`PathMetadataEntryData`. For example:
 
@@ -812,7 +814,7 @@ class EventMetadataEntry(
     @staticmethod
     def fspath(
         path: Optional[str], label: Optional[str] = None, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[PathMetadataEntryData]":
         """Static constructor for a metadata entry containing a filesystem path as
         :py:class:`PathMetadataEntryData`. For example:
 
@@ -842,7 +844,7 @@ class EventMetadataEntry(
         data: Optional[Dict[str, Any]],
         label: str,
         description: Optional[str] = None,
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[JsonMetadataEntryData]":
         """Static constructor for a metadata entry containing JSON data as
         :py:class:`JsonMetadataEntryData`. For example:
 
@@ -870,7 +872,7 @@ class EventMetadataEntry(
     @staticmethod
     def md(
         md_str: Optional[str], label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[MarkdownMetadataEntryData]":
         """Static constructor for a metadata entry containing markdown data as
         :py:class:`MarkdownMetadataEntryData`. For example:
 
@@ -893,7 +895,7 @@ class EventMetadataEntry(
     @staticmethod
     def python_artifact(
         python_artifact: Callable[..., Any], label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[PythonArtifactMetadataEntryData]":
         check.callable_param(python_artifact, "python_artifact")
         return EventMetadataEntry(
             label,
@@ -904,7 +906,7 @@ class EventMetadataEntry(
     @staticmethod
     def float(
         value: Optional[float], label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[FloatMetadataEntryData]":
         """Static constructor for a metadata entry containing float as
         :py:class:`FloatMetadataEntryData`. For example:
 
@@ -928,7 +930,7 @@ class EventMetadataEntry(
     @staticmethod
     def int(
         value: Optional[int], label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[IntMetadataEntryData]":
         """Static constructor for a metadata entry containing int as
         :py:class:`IntMetadataEntryData`. For example:
 
@@ -952,7 +954,7 @@ class EventMetadataEntry(
     @staticmethod
     def pipeline_run(
         run_id: str, label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[DagsterPipelineRunMetadataEntryData]":
         check.str_param(run_id, "run_id")
         return EventMetadataEntry(label, description, DagsterPipelineRunMetadataEntryData(run_id))
 
@@ -992,7 +994,7 @@ class EventMetadataEntry(
         label: str,
         description: Optional[str] = None,
         schema: Optional[TableSchema] = None,
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[TableMetadataEntryData]":
         """Static constructor for a metadata entry containing tabluar data as
         :py:class:`TableMetadataEntryData`. For example:
 
@@ -1040,7 +1042,7 @@ class EventMetadataEntry(
     @staticmethod
     def table_schema(
         schema: TableSchema, label: str, description: Optional[str] = None
-    ) -> "EventMetadataEntry":
+    ) -> "EventMetadataEntry[TableSchemaMetadataEntryData]":
         """Static constructor for a metadata entry containing a table schema as
         :py:class:`TableSchemaMetadataEntryData`. For example:
 
