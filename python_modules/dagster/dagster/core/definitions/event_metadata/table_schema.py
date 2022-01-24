@@ -174,7 +174,7 @@ class TableField(
     def __new__(
         cls,
         name: str,
-        type: str = "string",
+        type: str = "string",   # pylint: disable=redefined-builtin
         description: Optional[str] = None,
         constraints: Optional["TableFieldConstraints"] = None,
     ):
