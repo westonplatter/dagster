@@ -169,9 +169,6 @@ class GrapheneEventPathMetadataEntry(graphene.ObjectType):
 
 
 class GrapheneEventTableMetadataEntry(graphene.ObjectType):
-    # NOTE: JSON is the serialization format for the table (list of
-    # dictionaries). Don't confuse with `EventJsonMetadataEntry`-- this type is
-    # used only for JSON with a root dictionary.
     table = graphene.NonNull(GrapheneTable)
 
     class Meta:
