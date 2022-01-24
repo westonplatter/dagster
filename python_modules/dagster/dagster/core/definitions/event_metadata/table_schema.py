@@ -1,4 +1,4 @@
-from typing import List, NamedTuple, Optional, cast
+from typing import List, NamedTuple, Optional, Union, cast
 
 import dagster.check as check
 from dagster.serdes.serdes import DefaultNamedTupleSerializer, whitelist_for_serdes
@@ -204,6 +204,9 @@ class _TableFieldConstraintsSerializer(DefaultNamedTupleSerializer):
     pass
 
 
+EnumValue = Union[str, int, float, bool]
+
+
 @whitelist_for_serdes(serializer=_TableFieldConstraintsSerializer)
 class TableFieldConstraints(
     NamedTuple(
@@ -216,7 +219,7 @@ class TableFieldConstraints(
             ("minimum", Optional[object]),
             ("maximum", Optional[object]),
             ("pattern", Optional[str]),
-            ("enum", Optional[List[object]]),
+            ("enum", Optional[List[EnumValue]]),
             ("other", Optional[List[str]]),
         ],
     )
@@ -245,8 +248,8 @@ class TableFieldConstraints(
             If the regular expression matches then the value is valid. The values of this
             field MUST conform to the standard `XML Schema regular expression
             syntax<http://www.w3.org/TR/xmlschema-2/#regexs>`.
-        enum (Optional[List[Any]]): If supplied, the value of the field must
-            match one of the values in the list.
+        enum (Optional[List[str, int, float, bool]]): If supplied, the value of the
+            field must match one of the values in the list.
         other (List[str]): Descriptions of arbitrary field-level constraints
             not expressible by the predefined properties.
     """
@@ -260,7 +263,7 @@ class TableFieldConstraints(
         minimum: Optional[object] = None,
         maximum: Optional[object] = None,
         pattern: Optional[str] = None,
-        enum: Optional[List[object]] = None,
+        enum: Optional[List[EnumValue]] = None,
         other: Optional[List[str]] = None,
     ):
         return super(TableFieldConstraints, cls).__new__(
