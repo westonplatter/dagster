@@ -379,7 +379,9 @@ class EmrPySparkStepLauncher(StepLauncher):
                 )
             else:
                 log.debug(f"Spark Driver stderr: {record.message}")
-        log.info("Spark Driver stdout: " + stdout_log)
+
+        for stdout_line in stdout_log.split("\n"):
+            log.info("Spark Driver stdout: " + stdout_line.rstrip("\r\n"))
 
     def _get_emr_step_def(self, run_id, step_key, solid_name):
         """From the local Dagster instance, construct EMR steps that will kick off execution on a
